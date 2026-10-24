@@ -1,0 +1,249 @@
+{
+  "id": "VideoAI01FormMau",
+  "name": "1. Form - Thêm mẫu đồ",
+  "nodes": [
+    {
+      "id": "828cfa63-6591-484f-a69e-30eff1c96c0d",
+      "name": "Form thêm mẫu đồ",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "formTitle": "Thêm mẫu đồ",
+        "formDescription": "Mỗi lần gửi là một mẫu. Tool sẽ tự ghép đồ vào người mẫu chính và làm video.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Mã SP",
+              "fieldType": "text",
+              "requiredField": true,
+              "placeholder": "vd SP001"
+            },
+            {
+              "fieldLabel": "Tên SP",
+              "fieldType": "text"
+            },
+            {
+              "fieldLabel": "Phong cách",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "basic"
+                  },
+                  {
+                    "option": "cute"
+                  },
+                  {
+                    "option": "sexy"
+                  },
+                  {
+                    "option": "streetwear"
+                  },
+                  {
+                    "option": "thanh-lich"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Link affiliate",
+              "fieldType": "text"
+            },
+            {
+              "fieldLabel": "Hoa hồng %",
+              "fieldType": "number"
+            },
+            {
+              "fieldLabel": "Ảnh sản phẩm",
+              "fieldType": "file",
+              "requiredField": true,
+              "multipleFiles": false,
+              "acceptFileTypes": ".jpg,.jpeg,.png,.webp"
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Thêm mẫu",
+          "path": "them-mau-do"
+        }
+      },
+      "webhookId": "31979a1e-4bf4-4ebb-ac0c-0560c13f6018"
+    },
+    {
+      "id": "74e75808-5cd3-49be-a41a-ab3730861a56",
+      "name": "Chuẩn bị lưu ảnh",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// ===== Dùng chung (tự chèn vào mọi khối Code) =====\nconst SP = {\n  MOI: 'Mới', DANG_GHEP: 'Đang ghép đồ', CHO_AI: 'Chờ AI kiểm ảnh', CAN_NGUOI_XEM: 'Cần người xem ảnh',\n  ANH_OK: 'Ảnh OK', DANG_LAM_VIDEO: 'Đang làm video', XONG: 'Xong', THIEU_VIDEO: 'Xong (thiếu video)',\n  LOI: 'Lỗi', TAM_DUNG: 'Tạm dừng',\n};\nconst JOB = {\n  CHO_TAO: 'Chờ tạo', DANG_TAO: 'Đang tạo', CHO_AI: 'Chờ AI kiểm', CHO_DUYET: 'Chờ duyệt',\n  AI_LOI: 'AI báo lỗi', LOI: 'Lỗi',\n};\nconst CLIP = { DUNG: 'Dùng', NEN_LOAI: 'Nên loại', LOAI: 'Loại' };\nconst HF_FAIL = ['failed', 'nsfw', 'canceled', 'cancelled'];\nconst NOW = $now.toFormat('yyyy-MM-dd HH:mm:ss');\nconst TODAY = $now.toFormat('yyyy-MM-dd');\n\nfunction minutesSince(s) {\n  if (!s) return 0;\n  const t = DateTime.fromFormat(String(s), 'yyyy-MM-dd HH:mm:ss', { zone: $now.zone });\n  return t.isValid ? $now.diff(t, 'minutes').minutes : 0;\n}\nfunction errText(x) {\n  if (!x) return '';\n  if (typeof x === 'string') return x.slice(0, 300);\n  const parts = [x.httpCode && 'HTTP ' + x.httpCode, x.message, x.description].filter(Boolean);\n  const m = parts.length ? parts.join(' | ') : (x.error && (x.error.message || x.error)) || x;\n  return (typeof m === 'string' ? m : JSON.stringify(m)).slice(0, 400);\n}\n// Một lệnh ghi bảng: r = 0 để đi vào nhánh \"Ghi bảng\"\nfunction db(tbl, op, data) {\n  return { json: { r: 0, tbl, op, data } };\n}\n// =====\n\n// Chuẩn bị lưu ảnh sản phẩm từ form vào 01_SanPham\nconst safe = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').replace(/[^A-Za-z0-9_-]+/g, '-').slice(0, 40);\nreturn $input.all().map((it) => {\n  const f = it.json;\n  const ma = String(f['Mã SP'] || '').trim();\n  const binKey = Object.keys(it.binary || {})[0];\n  if (!ma || !binKey) throw new Error('Thiếu Mã SP hoặc ảnh sản phẩm');\n  const bin = it.binary[binKey];\n  const ext = (bin.fileExtension || String(bin.fileName || '').split('.').pop() || 'jpg').toLowerCase().replace('jpeg', 'jpg');\n  if (!['jpg', 'png', 'webp'].includes(ext)) throw new Error('Ảnh phải là JPG, PNG hoặc WEBP');\n  const path = `/files/01_SanPham/${safe(ma)}.${ext}`;\n  return {\n    json: {\n      path,\n      row: {\n        ma_sp: ma, ten_sp: String(f['Tên SP'] || ''), anh_sp: path,\n        phong_cach: String(f['Phong cách'] || 'basic').toLowerCase(),\n        link_aff: String(f['Link affiliate'] || ''), hoa_hong: Number(f['Hoa hồng %']) || 0,\n        trang_thai: SP.MOI, so_lan_ghep: 0, so_video_tao: 0, so_video_ok: 0, so_loi: 0,\n        ghi_chu_loi: '', ai_nhan_xet_anh: '', anh_mac_do: '', status_url: '', gui_luc: '',\n      },\n    },\n    binary: { data: bin },\n  };\n});\n"
+      }
+    },
+    {
+      "id": "6afe3070-7606-466c-a71a-9a291ea90b46",
+      "name": "Lưu ảnh sản phẩm",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ $json.path }}",
+        "dataPropertyName": "data",
+        "options": {}
+      }
+    },
+    {
+      "id": "b1625e17-e818-49b4-a9fe-d6331458cacb",
+      "name": "Dòng mẫu đồ",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// ===== Dùng chung (tự chèn vào mọi khối Code) =====\nconst SP = {\n  MOI: 'Mới', DANG_GHEP: 'Đang ghép đồ', CHO_AI: 'Chờ AI kiểm ảnh', CAN_NGUOI_XEM: 'Cần người xem ảnh',\n  ANH_OK: 'Ảnh OK', DANG_LAM_VIDEO: 'Đang làm video', XONG: 'Xong', THIEU_VIDEO: 'Xong (thiếu video)',\n  LOI: 'Lỗi', TAM_DUNG: 'Tạm dừng',\n};\nconst JOB = {\n  CHO_TAO: 'Chờ tạo', DANG_TAO: 'Đang tạo', CHO_AI: 'Chờ AI kiểm', CHO_DUYET: 'Chờ duyệt',\n  AI_LOI: 'AI báo lỗi', LOI: 'Lỗi',\n};\nconst CLIP = { DUNG: 'Dùng', NEN_LOAI: 'Nên loại', LOAI: 'Loại' };\nconst HF_FAIL = ['failed', 'nsfw', 'canceled', 'cancelled'];\nconst NOW = $now.toFormat('yyyy-MM-dd HH:mm:ss');\nconst TODAY = $now.toFormat('yyyy-MM-dd');\n\nfunction minutesSince(s) {\n  if (!s) return 0;\n  const t = DateTime.fromFormat(String(s), 'yyyy-MM-dd HH:mm:ss', { zone: $now.zone });\n  return t.isValid ? $now.diff(t, 'minutes').minutes : 0;\n}\nfunction errText(x) {\n  if (!x) return '';\n  if (typeof x === 'string') return x.slice(0, 300);\n  const parts = [x.httpCode && 'HTTP ' + x.httpCode, x.message, x.description].filter(Boolean);\n  const m = parts.length ? parts.join(' | ') : (x.error && (x.error.message || x.error)) || x;\n  return (typeof m === 'string' ? m : JSON.stringify(m)).slice(0, 400);\n}\n// Một lệnh ghi bảng: r = 0 để đi vào nhánh \"Ghi bảng\"\nfunction db(tbl, op, data) {\n  return { json: { r: 0, tbl, op, data } };\n}\n// =====\n\n// Dữ liệu dòng mẫu đồ để ghi vào bảng\nreturn $input.all().map((it, i) => ({ json: $('Chuẩn bị lưu ảnh').itemMatching(i).json.row }));\n"
+      }
+    },
+    {
+      "id": "4574c5b5-dd63-44a7-a2c3-c0b43e51380f",
+      "name": "Lưu vào bảng mẫu đồ",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        300
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "mau_do"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "ma_sp",
+              "condition": "eq",
+              "keyValue": "={{ $json.ma_sp }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7f5ffa01-f5ff-41db-a857-72833ddc8d81",
+      "name": "Báo đã thêm",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        300
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e2baaf3-b97d-4eef-a1c0-043275f9a0e7",
+              "name": "Kết quả",
+              "value": "=Đã thêm mẫu {{ $json.ma_sp }}. Tool sẽ xử lý trong vòng 10 phút.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Form thêm mẫu đồ": {
+      "main": [
+        [
+          {
+            "node": "Chuẩn bị lưu ảnh",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chuẩn bị lưu ảnh": {
+      "main": [
+        [
+          {
+            "node": "Lưu ảnh sản phẩm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lưu ảnh sản phẩm": {
+      "main": [
+        [
+          {
+            "node": "Dòng mẫu đồ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dòng mẫu đồ": {
+      "main": [
+        [
+          {
+            "node": "Lưu vào bảng mẫu đồ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lưu vào bảng mẫu đồ": {
+      "main": [
+        [
+          {
+            "node": "Báo đã thêm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {},
+  "tags": []
+}

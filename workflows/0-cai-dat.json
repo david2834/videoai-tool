@@ -1,0 +1,583 @@
+{
+  "id": "VideoAI00CaiDat1",
+  "name": "0. Cài đặt (chạy 1 lần)",
+  "nodes": [
+    {
+      "id": "3907f01e-3fb3-4bc4-a12c-624e52fafc13",
+      "name": "Bấm để cài đặt",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "b0f9cc1d-af61-422d-a397-de0ed97b3235",
+      "name": "Gọi từ file cài đặt",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        500
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "cai-dat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "1d5e4d10-99e0-4d6f-a22a-4926f7e57154"
+    },
+    {
+      "id": "b5ca5d33-c4eb-4f89-a8ae-f82aec0403af",
+      "name": "Tạo bảng cau_hinh",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "cau_hinh",
+        "columns": {
+          "column": [
+            {
+              "name": "khoa",
+              "type": "string"
+            },
+            {
+              "name": "gia_tri",
+              "type": "string"
+            },
+            {
+              "name": "giai_thich",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "7c34c8fb-bee7-4f30-a2d6-0adedb2dfc62",
+      "name": "Tạo bảng mau_do",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "mau_do",
+        "columns": {
+          "column": [
+            {
+              "name": "ma_sp",
+              "type": "string"
+            },
+            {
+              "name": "ten_sp",
+              "type": "string"
+            },
+            {
+              "name": "phong_cach",
+              "type": "string"
+            },
+            {
+              "name": "trang_thai",
+              "type": "string"
+            },
+            {
+              "name": "so_video_ok",
+              "type": "number"
+            },
+            {
+              "name": "so_video_tao",
+              "type": "number"
+            },
+            {
+              "name": "ai_nhan_xet_anh",
+              "type": "string"
+            },
+            {
+              "name": "ghi_chu_loi",
+              "type": "string"
+            },
+            {
+              "name": "link_aff",
+              "type": "string"
+            },
+            {
+              "name": "hoa_hong",
+              "type": "number"
+            },
+            {
+              "name": "anh_sp",
+              "type": "string"
+            },
+            {
+              "name": "anh_mac_do",
+              "type": "string"
+            },
+            {
+              "name": "thu_muc_video",
+              "type": "string"
+            },
+            {
+              "name": "so_lan_ghep",
+              "type": "number"
+            },
+            {
+              "name": "status_url",
+              "type": "string"
+            },
+            {
+              "name": "gui_luc",
+              "type": "string"
+            },
+            {
+              "name": "so_loi",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "7a50fc00-6f37-40b9-ab48-2f94c5cf3bdd",
+      "name": "Tạo bảng kho_nhay",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        300
+      ],
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "kho_nhay",
+        "columns": {
+          "column": [
+            {
+              "name": "ten_file",
+              "type": "string"
+            },
+            {
+              "name": "bai_hat",
+              "type": "string"
+            },
+            {
+              "name": "phong_cach",
+              "type": "string"
+            },
+            {
+              "name": "trang_thai",
+              "type": "string"
+            },
+            {
+              "name": "so_lan_dung",
+              "type": "number"
+            },
+            {
+              "name": "so_lan_loi",
+              "type": "number"
+            },
+            {
+              "name": "ghi_chu",
+              "type": "string"
+            },
+            {
+              "name": "duong_dan",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "d413e1dc-4f14-4059-a22f-43615df76076",
+      "name": "Tạo bảng hang_doi",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        840,
+        300
+      ],
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "hang_doi",
+        "columns": {
+          "column": [
+            {
+              "name": "job_id",
+              "type": "string"
+            },
+            {
+              "name": "ma_sp",
+              "type": "string"
+            },
+            {
+              "name": "bai_hat",
+              "type": "string"
+            },
+            {
+              "name": "trang_thai",
+              "type": "string"
+            },
+            {
+              "name": "video",
+              "type": "string"
+            },
+            {
+              "name": "ai_nhan_xet",
+              "type": "string"
+            },
+            {
+              "name": "duyet",
+              "type": "string"
+            },
+            {
+              "name": "ly_do_hong",
+              "type": "string"
+            },
+            {
+              "name": "dang_fb",
+              "type": "string"
+            },
+            {
+              "name": "dang_tiktok",
+              "type": "string"
+            },
+            {
+              "name": "nhan_ai",
+              "type": "string"
+            },
+            {
+              "name": "ghi_chu_loi",
+              "type": "string"
+            },
+            {
+              "name": "gui_luc",
+              "type": "string"
+            },
+            {
+              "name": "xong_luc",
+              "type": "string"
+            },
+            {
+              "name": "anh_mac_do",
+              "type": "string"
+            },
+            {
+              "name": "clip",
+              "type": "string"
+            },
+            {
+              "name": "clip_path",
+              "type": "string"
+            },
+            {
+              "name": "status_url",
+              "type": "string"
+            },
+            {
+              "name": "so_loi",
+              "type": "number"
+            },
+            {
+              "name": "da_tinh_loi",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "f381e7bd-3999-4e80-aa72-c0dc6e61da7d",
+      "name": "Tạo bảng bao_cao",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1040,
+        300
+      ],
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "bao_cao",
+        "columns": {
+          "column": [
+            {
+              "name": "ngay",
+              "type": "string"
+            },
+            {
+              "name": "tom_tat",
+              "type": "string"
+            },
+            {
+              "name": "van_de",
+              "type": "string"
+            },
+            {
+              "name": "so_lieu",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "26e60595-fabe-4a4a-a5ef-8e373a75cb5e",
+      "name": "Tạo thư mục",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        300
+      ],
+      "parameters": {
+        "executeOnce": false,
+        "command": "mkdir -p /files/00_NguoiMau /files/01_SanPham /files/02_AnhMacDo /files/03_KhoNhay /files/04_KetQua /files/tmp && ls /files"
+      },
+      "onError": "stopWorkflow",
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "id": "64f12547-7ac4-430e-a3c7-8209da07a6b2",
+      "name": "Báo đã cài xong",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1460,
+        500
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {}
+      }
+    },
+    {
+      "id": "bdfb288b-302f-46cd-af50-d265dcc68934",
+      "name": "Cấu hình mặc định",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// ===== Dùng chung (tự chèn vào mọi khối Code) =====\nconst SP = {\n  MOI: 'Mới', DANG_GHEP: 'Đang ghép đồ', CHO_AI: 'Chờ AI kiểm ảnh', CAN_NGUOI_XEM: 'Cần người xem ảnh',\n  ANH_OK: 'Ảnh OK', DANG_LAM_VIDEO: 'Đang làm video', XONG: 'Xong', THIEU_VIDEO: 'Xong (thiếu video)',\n  LOI: 'Lỗi', TAM_DUNG: 'Tạm dừng',\n};\nconst JOB = {\n  CHO_TAO: 'Chờ tạo', DANG_TAO: 'Đang tạo', CHO_AI: 'Chờ AI kiểm', CHO_DUYET: 'Chờ duyệt',\n  AI_LOI: 'AI báo lỗi', LOI: 'Lỗi',\n};\nconst CLIP = { DUNG: 'Dùng', NEN_LOAI: 'Nên loại', LOAI: 'Loại' };\nconst HF_FAIL = ['failed', 'nsfw', 'canceled', 'cancelled'];\nconst NOW = $now.toFormat('yyyy-MM-dd HH:mm:ss');\nconst TODAY = $now.toFormat('yyyy-MM-dd');\n\nfunction minutesSince(s) {\n  if (!s) return 0;\n  const t = DateTime.fromFormat(String(s), 'yyyy-MM-dd HH:mm:ss', { zone: $now.zone });\n  return t.isValid ? $now.diff(t, 'minutes').minutes : 0;\n}\nfunction errText(x) {\n  if (!x) return '';\n  if (typeof x === 'string') return x.slice(0, 300);\n  const parts = [x.httpCode && 'HTTP ' + x.httpCode, x.message, x.description].filter(Boolean);\n  const m = parts.length ? parts.join(' | ') : (x.error && (x.error.message || x.error)) || x;\n  return (typeof m === 'string' ? m : JSON.stringify(m)).slice(0, 400);\n}\n// Một lệnh ghi bảng: r = 0 để đi vào nhánh \"Ghi bảng\"\nfunction db(tbl, op, data) {\n  return { json: { r: 0, tbl, op, data } };\n}\n// =====\n\n// Cấu hình mặc định. Chỉ thêm khóa còn thiếu, không ghi đè giá trị anh đã sửa.\nconst rows = [\n  ['SO_VIDEO_MOI_MAU', '2', 'Số video OK cần cho mỗi mẫu đồ.'],\n  ['TRAN_VIDEO_MOI_NGAY', '20', 'Tối đa số video gửi tạo mỗi ngày (chặn đốt tiền).'],\n  ['TRAN_ANH_MOI_NGAY', '30', 'Tối đa số lượt ghép đồ mỗi ngày.'],\n  ['SO_LAN_GHEP_LAI', '2', 'Claude chấm ảnh hỏng thì ghép lại tối đa bấy nhiêu lần, sau đó chờ người xem.'],\n  ['NHA_CUNG_CAP', 'fal', 'Nơi gọi AI: fal (mặc định, rẻ hơn) hoặc higgsfield. Đổi nơi thì chạy lại CaiDat.bat với key tương ứng.'],\n  ['MODEL_GHEP_DO', 'fal-ai/nano-banana/edit', 'Model ghép đồ. fal: fal-ai/nano-banana/edit. Higgsfield: alibaba/qwen-image-3/edit'],\n  ['MODEL_VIDEO', 'fal-ai/kling-video/v2.6/standard/motion-control', 'Model video. fal Kling 3 đẹp hơn, đắt hơn: fal-ai/kling-video/v3/standard/motion-control. Higgsfield: kling-video/motion-control/std'],\n  ['GIU_NHAC_GOC', 'yes', 'yes = giữ nhạc của video nhảy, no = video ra không có tiếng.'],\n  ['HUONG_NHAN_VAT', 'video', 'video = theo hướng người trong video nhảy, image = theo ảnh.'],\n  ['PROMPT_GHEP_DO', 'Dress the person from image 1 in the exact garment shown in image 2. Keep the face, hair, body shape and skin tone of the person in image 1 unchanged. Reproduce the garment faithfully: same color, pattern, fabric, cut, neckline, sleeves, length and details. Full body, standing straight, facing camera, arms relaxed, plain light studio background, vertical photo, realistic fashion photography.', 'Prompt ghép đồ (tiếng Anh).'],\n  ['PROMPT_VIDEO', '', 'Prompt thêm cho bước tạo video (để trống cũng được).'],\n  ['CLAUDE_KIEM_TRA', 'Bật', 'Bật / Tắt Claude chấm ảnh và video.'],\n  ['CLAUDE_MODEL', 'claude-opus-5-5', 'Model Claude. Rẻ hơn khoảng 40 lần: claude-haiku-5-5'],\n  ['HF_BASE', 'https://api.higgsfield.ai/', 'Địa chỉ API Higgsfield. Không cần sửa.'],\n  ['CLAUDE_URL', 'https://api.anthropic.com/v1/messages', 'Địa chỉ API Claude. Không cần sửa.'],\n];\nreturn rows.map(([khoa, gia_tri, giai_thich]) => ({ json: { khoa, gia_tri, giai_thich } }));\n"
+      }
+    },
+    {
+      "id": "2489b040-2fc0-45ce-a8d3-e1d8acbdc8b2",
+      "name": "Khóa chưa có",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        300
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "cau_hinh"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "khoa",
+              "condition": "eq",
+              "keyValue": "={{ $json.khoa }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "9aec2e44-6a82-4ac9-a1f1-234d86d06908",
+      "name": "Thêm cấu hình",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1900,
+        300
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "cau_hinh"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Bấm để cài đặt": {
+      "main": [
+        [
+          {
+            "node": "Tạo bảng cau_hinh",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gọi từ file cài đặt": {
+      "main": [
+        [
+          {
+            "node": "Tạo bảng cau_hinh",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tạo bảng cau_hinh": {
+      "main": [
+        [
+          {
+            "node": "Tạo bảng mau_do",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tạo bảng mau_do": {
+      "main": [
+        [
+          {
+            "node": "Tạo bảng kho_nhay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tạo bảng kho_nhay": {
+      "main": [
+        [
+          {
+            "node": "Tạo bảng hang_doi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tạo bảng hang_doi": {
+      "main": [
+        [
+          {
+            "node": "Tạo bảng bao_cao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tạo bảng bao_cao": {
+      "main": [
+        [
+          {
+            "node": "Tạo thư mục",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tạo thư mục": {
+      "main": [
+        [
+          {
+            "node": "Báo đã cài xong",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Cấu hình mặc định",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cấu hình mặc định": {
+      "main": [
+        [
+          {
+            "node": "Khóa chưa có",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Khóa chưa có": {
+      "main": [
+        [
+          {
+            "node": "Thêm cấu hình",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {},
+  "tags": []
+}

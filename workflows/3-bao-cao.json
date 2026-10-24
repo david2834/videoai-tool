@@ -1,0 +1,298 @@
+{
+  "id": "VideoAI03BaoCao1",
+  "name": "3. Báo cáo buổi sáng (8h)",
+  "nodes": [
+    {
+      "id": "35bae3f9-6e56-472e-a001-f9e35fdfd6de",
+      "name": "8h sáng mỗi ngày",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "9a6d0c80-d50c-4f84-a4a4-6716567df1f3",
+      "name": "Đọc cấu hình",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        300
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "cau_hinh"
+        },
+        "returnAll": true
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "9f9d57e2-ba9d-403c-af4f-8025f3f916a8",
+      "name": "Đọc mẫu đồ",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        300
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "mau_do"
+        },
+        "returnAll": true
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "a8f3f2ad-9b1d-4aea-a876-78cb8f0a913e",
+      "name": "Đọc kho nhảy",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        600,
+        300
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "kho_nhay"
+        },
+        "returnAll": true
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "3cfe5fa9-6f01-4c08-a98b-04c9db4d49cc",
+      "name": "Đọc hàng đợi",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        300
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "hang_doi"
+        },
+        "returnAll": true
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "f7c4516d-9f54-4122-a49e-7a1f1cca9340",
+      "name": "Lập báo cáo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// ===== Dùng chung (tự chèn vào mọi khối Code) =====\nconst SP = {\n  MOI: 'Mới', DANG_GHEP: 'Đang ghép đồ', CHO_AI: 'Chờ AI kiểm ảnh', CAN_NGUOI_XEM: 'Cần người xem ảnh',\n  ANH_OK: 'Ảnh OK', DANG_LAM_VIDEO: 'Đang làm video', XONG: 'Xong', THIEU_VIDEO: 'Xong (thiếu video)',\n  LOI: 'Lỗi', TAM_DUNG: 'Tạm dừng',\n};\nconst JOB = {\n  CHO_TAO: 'Chờ tạo', DANG_TAO: 'Đang tạo', CHO_AI: 'Chờ AI kiểm', CHO_DUYET: 'Chờ duyệt',\n  AI_LOI: 'AI báo lỗi', LOI: 'Lỗi',\n};\nconst CLIP = { DUNG: 'Dùng', NEN_LOAI: 'Nên loại', LOAI: 'Loại' };\nconst HF_FAIL = ['failed', 'nsfw', 'canceled', 'cancelled'];\nconst NOW = $now.toFormat('yyyy-MM-dd HH:mm:ss');\nconst TODAY = $now.toFormat('yyyy-MM-dd');\n\nfunction minutesSince(s) {\n  if (!s) return 0;\n  const t = DateTime.fromFormat(String(s), 'yyyy-MM-dd HH:mm:ss', { zone: $now.zone });\n  return t.isValid ? $now.diff(t, 'minutes').minutes : 0;\n}\nfunction errText(x) {\n  if (!x) return '';\n  if (typeof x === 'string') return x.slice(0, 300);\n  const parts = [x.httpCode && 'HTTP ' + x.httpCode, x.message, x.description].filter(Boolean);\n  const m = parts.length ? parts.join(' | ') : (x.error && (x.error.message || x.error)) || x;\n  return (typeof m === 'string' ? m : JSON.stringify(m)).slice(0, 400);\n}\n// Một lệnh ghi bảng: r = 0 để đi vào nhánh \"Ghi bảng\"\nfunction db(tbl, op, data) {\n  return { json: { r: 0, tbl, op, data } };\n}\n// =====\n\n// Gom số liệu toàn hệ thống và nhờ Claude viết báo cáo buổi sáng\nconst rows = (name) => $(name).all().map((i) => i.json).filter((r) => r && r.id !== undefined);\nconst cfg = {};\nrows('Đọc cấu hình').forEach((r) => { cfg[r.khoa] = String(r.gia_tri ?? '').trim(); });\nconst mau = rows('Đọc mẫu đồ');\nconst jobs = rows('Đọc hàng đợi');\nconst kho = rows('Đọc kho nhảy');\nconst yesterday = $now.minus({ days: 1 }).toFormat('yyyy-MM-dd HH:mm:ss');\nconst recent = (v) => v && String(v) >= yesterday;\nconst countBy = (arr, key) => arr.reduce((o, r) => { const k = r[key] || '(trống)'; o[k] = (o[k] || 0) + 1; return o; }, {});\nconst stats = {\n  ngay: TODAY,\n  mau_do_theo_trang_thai: countBy(mau, 'trang_thai'),\n  video_theo_trang_thai: countBy(jobs, 'trang_thai'),\n  video_gui_24h: jobs.filter((j) => recent(j.gui_luc)).length,\n  video_xong_24h: jobs.filter((j) => recent(j.xong_luc)).length,\n  nguoi_duyet: countBy(jobs.filter((j) => j.duyet), 'duyet'),\n  ly_do_hong_nguoi_duyet: jobs.filter((j) => j.ly_do_hong).slice(-30).map((j) => j.ly_do_hong),\n  ai_bao_loi_video: jobs.filter((j) => j.trang_thai === JOB.AI_LOI).slice(-30).map((j) => j.ai_nhan_xet),\n  duyet_ok_chua_dang: jobs.filter((j) => j.duyet === 'OK' && !j.dang_fb && !j.dang_tiktok).length,\n  da_dang_chua_nhan_ai: jobs.filter((j) => (j.dang_fb || j.dang_tiktok) && j.nhan_ai !== 'Có').map((j) => j.job_id),\n  mau_can_nguoi_xem: mau.filter((m) => [SP.CAN_NGUOI_XEM, SP.LOI].includes(m.trang_thai)).map((m) => m.ma_sp + ': ' + (m.ghi_chu_loi || m.ai_nhan_xet_anh)),\n  loi_dang_treo: mau.concat(jobs).filter((r) => r.ghi_chu_loi).slice(-30).map((r) => (r.ma_sp || '') + ' ' + (r.job_id || '') + ': ' + r.ghi_chu_loi),\n  kho_nhay: {\n    tong: kho.length,\n    dang_dung: kho.filter((c) => c.trang_thai === CLIP.DUNG).length,\n    nen_loai: kho.filter((c) => c.trang_thai === CLIP.NEN_LOAI).map((c) => c.ten_file + ' (' + c.ghi_chu + ')'),\n    theo_phong_cach: countBy(kho.filter((c) => c.trang_thai === CLIP.DUNG), 'phong_cach'),\n  },\n  mau_dang_cho_theo_phong_cach: countBy(mau.filter((m) => [SP.MOI, SP.ANH_OK, SP.DANG_LAM_VIDEO, ''].includes(m.trang_thai || '')), 'phong_cach'),\n  cau_hinh: { so_video_moi_mau: cfg.SO_VIDEO_MOI_MAU, tran_video_moi_ngay: cfg.TRAN_VIDEO_MOI_NGAY, model_video: cfg.MODEL_VIDEO },\n};\nconst schema = {\n  type: 'object',\n  properties: {\n    tom_tat: { type: 'string' },\n    van_de: {\n      type: 'array',\n      items: {\n        type: 'object',\n        properties: { muc_do: { type: 'string', enum: ['Cao', 'Trung bình', 'Thấp'] }, mo_ta: { type: 'string' }, de_xuat: { type: 'string' } },\n        required: ['muc_do', 'mo_ta', 'de_xuat'], additionalProperties: false,\n      },\n    },\n  },\n  required: ['tom_tat', 'van_de'], additionalProperties: false,\n};\nconst model = cfg.CLAUDE_MODEL || 'claude-opus-5-5';\nconst body = {\n  model, max_tokens: 16000,\n  system: 'Bạn giám sát một dây chuyền tạo video AI thời trang (ghép đồ vào người mẫu, tạo video nhảy, người duyệt rồi đăng TikTok/Facebook để bán affiliate). ' +\n    'Đọc số liệu JSON và viết báo cáo ngắn bằng tiếng Việt cho trưởng nhóm. Chỉ dùng số có trong dữ liệu, không bịa số. ' +\n    'tom_tat: 2-4 câu, nêu số chính trước. van_de: tối đa 6 mục, xếp theo mức độ, mỗi đề xuất nói rõ làm gì cụ thể (clip nào nên loại, mẫu nào cần xem lại, phong cách nào thiếu clip). ' +\n    'Luôn nêu nếu có video đã đăng mà chưa gắn nhãn AI, hoặc một lỗi lặp lại nhiều lần. Nguyên nhân chưa chắc thì ghi rõ là giả thuyết.',\n  messages: [{ role: 'user', content: [{ type: 'text', text: JSON.stringify(stats) }] }],\n  output_config: { effort: 'medium', format: { type: 'json_schema', schema } },\n};\nconst headers = { 'anthropic-version': '2026-10-21', 'content-type': 'application/json' };\nif (/^claude-(opus-5|fable-5|sonnet-5-5)/.test(model)) {\n  body.fallbacks = 'default';\n  headers['anthropic-beta'] = 'server-side-fallback-2026-07-01';\n}\nreturn [{ json: { stats, url: cfg.CLAUDE_URL || 'https://api.anthropic.com/v1/messages', headers, body } }];\n"
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "47648079-a938-4bd9-a0f4-286b919b5353",
+      "name": "Claude viết báo cáo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 300000
+        },
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={{ JSON.stringify($json.headers) }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}"
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "claudeApiCred001",
+          "name": "Claude API"
+        }
+      }
+    },
+    {
+      "id": "5fe322e9-aa8c-4e35-ae5b-619579f642dc",
+      "name": "Nội dung báo cáo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// ===== Dùng chung (tự chèn vào mọi khối Code) =====\nconst SP = {\n  MOI: 'Mới', DANG_GHEP: 'Đang ghép đồ', CHO_AI: 'Chờ AI kiểm ảnh', CAN_NGUOI_XEM: 'Cần người xem ảnh',\n  ANH_OK: 'Ảnh OK', DANG_LAM_VIDEO: 'Đang làm video', XONG: 'Xong', THIEU_VIDEO: 'Xong (thiếu video)',\n  LOI: 'Lỗi', TAM_DUNG: 'Tạm dừng',\n};\nconst JOB = {\n  CHO_TAO: 'Chờ tạo', DANG_TAO: 'Đang tạo', CHO_AI: 'Chờ AI kiểm', CHO_DUYET: 'Chờ duyệt',\n  AI_LOI: 'AI báo lỗi', LOI: 'Lỗi',\n};\nconst CLIP = { DUNG: 'Dùng', NEN_LOAI: 'Nên loại', LOAI: 'Loại' };\nconst HF_FAIL = ['failed', 'nsfw', 'canceled', 'cancelled'];\nconst NOW = $now.toFormat('yyyy-MM-dd HH:mm:ss');\nconst TODAY = $now.toFormat('yyyy-MM-dd');\n\nfunction minutesSince(s) {\n  if (!s) return 0;\n  const t = DateTime.fromFormat(String(s), 'yyyy-MM-dd HH:mm:ss', { zone: $now.zone });\n  return t.isValid ? $now.diff(t, 'minutes').minutes : 0;\n}\nfunction errText(x) {\n  if (!x) return '';\n  if (typeof x === 'string') return x.slice(0, 300);\n  const parts = [x.httpCode && 'HTTP ' + x.httpCode, x.message, x.description].filter(Boolean);\n  const m = parts.length ? parts.join(' | ') : (x.error && (x.error.message || x.error)) || x;\n  return (typeof m === 'string' ? m : JSON.stringify(m)).slice(0, 400);\n}\n// Một lệnh ghi bảng: r = 0 để đi vào nhánh \"Ghi bảng\"\nfunction db(tbl, op, data) {\n  return { json: { r: 0, tbl, op, data } };\n}\n// =====\n\n// Ghi báo cáo vào bảng bao_cao\nconst res = $input.first().json || {};\nconst src = $('Lập báo cáo').first().json;\nlet out = null;\ntry { out = JSON.parse((res.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('')); } catch (e) { out = null; }\nreturn [{ json: {\n  ngay: NOW,\n  tom_tat: out ? out.tom_tat : 'Claude không tạo được báo cáo: ' + (errText(res.error) || res.stop_reason || 'không rõ') + '. Xem cột số liệu.',\n  van_de: out ? out.van_de.map((v) => `[${v.muc_do}] ${v.mo_ta} → ${v.de_xuat}`).join('\\n') : '',\n  so_lieu: JSON.stringify(src.stats),\n} }];\n"
+      }
+    },
+    {
+      "id": "120f5bf0-2130-482d-ac5e-d25ab444ccbb",
+      "name": "Lưu báo cáo",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        300
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "bao_cao"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "8h sáng mỗi ngày": {
+      "main": [
+        [
+          {
+            "node": "Đọc cấu hình",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Đọc cấu hình": {
+      "main": [
+        [
+          {
+            "node": "Đọc mẫu đồ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Đọc mẫu đồ": {
+      "main": [
+        [
+          {
+            "node": "Đọc kho nhảy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Đọc kho nhảy": {
+      "main": [
+        [
+          {
+            "node": "Đọc hàng đợi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Đọc hàng đợi": {
+      "main": [
+        [
+          {
+            "node": "Lập báo cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lập báo cáo": {
+      "main": [
+        [
+          {
+            "node": "Claude viết báo cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude viết báo cáo": {
+      "main": [
+        [
+          {
+            "node": "Nội dung báo cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nội dung báo cáo": {
+      "main": [
+        [
+          {
+            "node": "Lưu báo cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {},
+  "tags": []
+}
