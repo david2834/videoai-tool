@@ -6,9 +6,11 @@ for (let i = 0; i < items.length; i++) {
   const link = $('HF xin link upload').itemMatching(i).json;
   const g = (groups[task.sub.key] = groups[task.sub.key] || { sub: task.sub, urls: {}, err: [] });
   // lỗi ở bước xin link là gốc; lỗi bước đẩy chỉ là hệ quả
-  const e = link.error || items[i].json.error;
-  if (e || !(link.public_url || link.file_url)) g.err.push(errText(e) || 'Higgsfield không trả link upload: ' + JSON.stringify(link).slice(0, 200));
-  else g.urls[task.role] = link.public_url || link.file_url;
+  const upUrl = link.public_url || link.file_url;
+  if (link.error) g.err.push('Xin link upload lỗi: ' + errText(link.error));
+  else if (!upUrl || !link.upload_url) g.err.push('Máy chủ AI không trả link upload, trả về: ' + JSON.stringify(link).slice(0, 250));
+  else if (items[i].json.error) g.err.push('Đẩy file lên lỗi: ' + errText(items[i].json.error));
+  else g.urls[task.role] = upUrl;
 }
 
 const out = [];
